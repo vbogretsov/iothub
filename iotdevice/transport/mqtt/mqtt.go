@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/amenzhinsky/iothub/logger"
 	"net/url"
 	"strconv"
 	"strings"
@@ -13,8 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/amenzhinsky/iothub/common"
-	"github.com/amenzhinsky/iothub/iotdevice/transport"
+	"github.com/vbogretsov/iothub/logger"
+	"github.com/vbogretsov/iothub/common"
+	"github.com/vbogretsov/iothub/iotdevice/transport"
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 )
 

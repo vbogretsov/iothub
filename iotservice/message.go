@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/amenzhinsky/iothub/common"
 	"pack.ag/amqp"
+
+	"github.com/vbogretsov/iothub/common"
 )
 
 // FromAMQPMessage converts a amqp.Message into common.Message.

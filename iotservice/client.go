@@ -16,11 +16,11 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/amenzhinsky/iothub/common"
-	"github.com/amenzhinsky/iothub/eventhub"
-	"github.com/amenzhinsky/iothub/logger"
 	"pack.ag/amqp"
+
+	"github.com/vbogretsov/iothub/common"
+	"github.com/vbogretsov/iothub/eventhub"
+	"github.com/vbogretsov/iothub/logger"
 )
 
 // ClientOption is a client configuration option.
