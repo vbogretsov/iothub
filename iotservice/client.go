@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+
 	"pack.ag/amqp"
 
 	"github.com/vbogretsov/iothub/common"
@@ -1320,7 +1321,7 @@ func (c *Client) CreateJobV2(ctx context.Context, job *JobV2) (*JobV2, error) {
 	return &res, nil
 }
 
-type StreamHandler func(r *StreamResponse) error
+type StreamHandler func(ctx context.Context, r *StreamResponse) error
 
 type StreamRequest struct {
 	Name                     string
@@ -1386,7 +1387,7 @@ func (c *Client) CreateStream(
 		URI:                respH.Get("iothub-streaming-url"),
 		IsAccepted:         respH.Get("iothub-streaming-is-accepted") == "True",
 	}
-	return fn(&res)
+	return fn(ctx, &res)
 }
 
 func (c *Client) call(
