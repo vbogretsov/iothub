@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1319,6 +1320,75 @@ func (c *Client) CreateJobV2(ctx context.Context, job *JobV2) (*JobV2, error) {
 	return &res, nil
 }
 
+type StreamHandler func(r *StreamResponse) error
+
+type StreamRequest struct {
+	Name                     string
+	ConnectionTimeoutSeconds int
+	ResponseTimeoutSeconds   int
+}
+
+const streamingDefaultTimeoutSeconds = 60
+
+func getIntOrDefault(v, d int) int {
+	if v != 0 {
+		return v
+	}
+	return d
+}
+
+func (r *StreamRequest) getHeader() http.Header {
+	hdr := http.Header{}
+	hdr.Set(
+		"iothub-streaming-connect-timeout-in-seconds",
+		strconv.Itoa(getIntOrDefault(
+			r.ConnectionTimeoutSeconds,
+			streamingDefaultTimeoutSeconds,
+		)),
+	)
+	hdr.Set(
+		"iothub-streaming-response-timeout-in-seconds",
+		strconv.Itoa(getIntOrDefault(
+			r.ResponseTimeoutSeconds,
+			streamingDefaultTimeoutSeconds,
+		)),
+	)
+	return hdr
+}
+
+type StreamResponse struct {
+	AuthorizationToken string
+	URI                string
+	IsAccepted         bool
+}
+
+func (c *Client) CreateStream(
+	ctx context.Context,
+	deviceID string,
+	req *StreamRequest,
+	fn StreamHandler,
+) error {
+	var val map[string]interface{}
+	respH, err := c.call(
+		ctx,
+		http.MethodPost,
+		pathf("twins/%s/streams/%s", deviceID, req.Name),
+		nil,
+		req.getHeader(),
+		nil,
+		&val,
+	)
+	if err != nil {
+		return err
+	}
+	res := StreamResponse{
+		AuthorizationToken: respH.Get("iothub-streaming-auth-token"),
+		URI:                respH.Get("iothub-streaming-url"),
+		IsAccepted:         respH.Get("iothub-streaming-is-accepted") == "True",
+	}
+	return fn(&res)
+}
+
 func (c *Client) call(
 	ctx context.Context,
 	method string,
@@ -1366,6 +1436,7 @@ func (c *Client) call(
 	c.logger.Debugf("%s", (*requestOutDump)(req))
 	res, err := c.http.Do(req)
 	if err != nil {
+		c.logger.Errorf("api call failed: %v\n", err)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -1380,6 +1451,10 @@ func (c *Client) call(
 	case http.StatusNoContent:
 		return res.Header, nil
 	case http.StatusOK:
+		// Device Streams response has status 200 and the empty body.
+		if len(body) == 0 {
+			return res.Header, nil
+		}
 		return res.Header, json.Unmarshal(body, v)
 	case http.StatusBadRequest:
 		// try to decode a registry error, because some operations like
